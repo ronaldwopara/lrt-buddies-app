@@ -1,22 +1,21 @@
 import React, { useState } from 'react';
 import { Shield, ArrowLeft, Sun, Moon } from 'lucide-react';
 
-export default function OfficerWelcome({ onBack }) {
+export default function OfficerWelcome({ onBack, onSignIn }) {
   const [isDark, setIsDark] = useState(true);
   const [name, setName] = useState('');
   const [badgeNumber, setBadgeNumber] = useState('');
 
   const handleSignIn = () => {
     if (name.trim() && badgeNumber.trim()) {
-      console.log('Officer signing in:', name, badgeNumber);
-      // alert('Officer Sign In - This will go to the officer dashboard');
-      // Replaced alert with console log
+      if (onSignIn) {
+        onSignIn(name, badgeNumber);
+      }
     }
   };
 
   return (
-    // Changed `min-h-screen` to `h-screen overflow-hidden` to prevent scrolling
-    <div className={`h-screen overflow-hidden ${
+    <div className={`min-h-screen ${
       isDark 
         ? 'bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-900' 
         : 'bg-gradient-to-br from-indigo-50 via-white to-purple-50'

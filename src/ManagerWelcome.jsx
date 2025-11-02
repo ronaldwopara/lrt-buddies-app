@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Briefcase, ArrowLeft, Sun, Moon, ChevronDown } from 'lucide-react';
 
-export default function ManagerWelcome({ onBack }) {
+export default function ManagerWelcome({ onBack, onSignIn }) {
   const [isDark, setIsDark] = useState(true);
   const [name, setName] = useState('');
   const [department, setDepartment] = useState('');
@@ -32,13 +32,14 @@ export default function ManagerWelcome({ onBack }) {
 
   const handleSignIn = () => {
     if (name.trim() && department.trim()) {
-      console.log('Manager signing in:', name, department);
-      // Navigate to manager dashboard
+      if (onSignIn) {
+        onSignIn(name, department);
+      }
     }
   };
 
   return (
-    <div className={`h-screen overflow-hidden ${
+    <div className={`min-h-screen ${
       isDark 
         ? 'bg-gradient-to-br from-emerald-900 via-teal-900 to-emerald-900' 
         : 'bg-gradient-to-br from-emerald-50 via-white to-teal-50'
