@@ -1,3 +1,36 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom Dropdown Styling */
+
+/* Style for dropdown options */
+select option {
+  padding: 12px 16px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Remove default select arrow in IE */
+select::-ms-expand {
+  display: none;
+}
+
+/* Firefox specific styling */
+select {
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Style the dropdown when it opens (limited browser support but helps) */
+select:focus option:checked,
+select:focus option:hover {
+  background: linear-gradient(0deg, #14b8a6 0%, #0d9488 100%);
+  color: white;
+}
+
+/* Improve option spacing and appearance */
+select option:not(:first-child) {
+  margin-top: 4px;
+}
