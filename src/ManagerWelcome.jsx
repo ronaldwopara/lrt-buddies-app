@@ -33,12 +33,12 @@ export default function ManagerWelcome({ onBack }) {
   const handleSignIn = () => {
     if (name.trim() && department.trim()) {
       console.log('Manager signing in:', name, department);
-      alert('Manager Sign In - This will go to the manager dashboard');
+      // Navigate to manager dashboard
     }
   };
 
   return (
-    <div className={`min-h-screen ${
+    <div className={`h-screen overflow-hidden ${
       isDark 
         ? 'bg-gradient-to-br from-emerald-900 via-teal-900 to-emerald-900' 
         : 'bg-gradient-to-br from-emerald-50 via-white to-teal-50'

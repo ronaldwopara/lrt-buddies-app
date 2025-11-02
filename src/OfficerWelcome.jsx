@@ -9,12 +9,14 @@ export default function OfficerWelcome({ onBack }) {
   const handleSignIn = () => {
     if (name.trim() && badgeNumber.trim()) {
       console.log('Officer signing in:', name, badgeNumber);
-      alert('Officer Sign In - This will go to the officer dashboard');
+      // alert('Officer Sign In - This will go to the officer dashboard');
+      // Replaced alert with console log
     }
   };
 
   return (
-    <div className={`min-h-screen ${
+    // Changed `min-h-screen` to `h-screen overflow-hidden` to prevent scrolling
+    <div className={`h-screen overflow-hidden ${
       isDark 
         ? 'bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-900' 
         : 'bg-gradient-to-br from-indigo-50 via-white to-purple-50'

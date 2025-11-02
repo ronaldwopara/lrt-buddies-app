@@ -16,7 +16,8 @@ export default function PassengerWelcome({ onRoleSelect, onSignIn }) {
   };
 
   return (
-    <div className={`min-h-screen ${
+    // Changed `min-h-screen` to `h-screen overflow-hidden` to prevent scrolling
+    <div className={`h-screen overflow-hidden ${
       isDark 
         ? 'bg-gradient-to-br from-blue-900 via-indigo-900 to-blue-900' 
         : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'

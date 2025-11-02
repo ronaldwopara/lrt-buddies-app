@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { User, Edit, MapPin, Sun, Moon, Camera } from 'lucide-react';
 
-export default function PassengerHome({ userName }) {
+export default function PassengerHome({ userName, onNavigateToReport, onNavigateToMap }) {
   const [isDark, setIsDark] = useState(true);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [stream, setStream] = useState(null);
   const [currentGreeting, setCurrentGreeting] = useState('');
+  const [cameraError, setCameraError] = useState(null);
   const videoRef = useRef(null);
 
   // Extract first name from full name
@@ -44,28 +45,45 @@ export default function PassengerHome({ userName }) {
     };
   }, [stream]);
 
+  // Attach stream to video element
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+      videoRef.current.onloadedmetadata = () => {
+        videoRef.current.play().catch(err => {
+          console.error('Error playing video:', err);
+        });
+      };
+    }
+  }, [stream]);
+
   // Activate camera when viewfinder is clicked
   const activateCamera = async () => {
+    setCameraError(null);
+    
     try {
-      // Request camera access
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment', // Try back camera first (mobile)
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
-        audio: false 
-      });
-      
-      // Set the stream to video element
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        // Make sure video plays
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current.play().catch(err => {
-            console.error('Error playing video:', err);
-          });
-        };
+      // Try environment (back) camera first with common resolution
+      let mediaStream;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false 
+        });
+      } catch (err) {
+        // Fallback to user (front) camera if environment fails
+        console.log('Environment camera not available, trying front camera');
+        mediaStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: 'user',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false 
+        });
       }
       
       setStream(mediaStream);
@@ -75,15 +93,33 @@ export default function PassengerHome({ userName }) {
     } catch (err) {
       console.error('Error accessing camera:', err);
       
-      // Provide helpful error messages
+      // Set user-friendly error messages
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        alert('Camera permission denied. Please allow camera access in your browser settings and try again.');
+        setCameraError({
+          title: 'Camera Permission Denied',
+          message: 'Please allow camera access in your browser settings.',
+          instructions: navigator.userAgent.includes('Safari') 
+            ? 'Safari: Settings → Privacy & Security → Camera → Allow this website'
+            : 'Chrome/Edge: Click the camera icon in the address bar and allow access'
+        });
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        alert('No camera found on this device.');
+        setCameraError({
+          title: 'No Camera Found',
+          message: 'Please connect a camera to your device.',
+          instructions: null
+        });
       } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        alert('Camera is already in use by another application.');
+        setCameraError({
+          title: 'Camera In Use',
+          message: 'The camera is being used by another application.',
+          instructions: 'Please close other apps using the camera and try again.'
+        });
       } else {
-        alert('Unable to access camera: ' + err.message);
+        setCameraError({
+          title: 'Camera Error',
+          message: 'Unable to access camera: ' + err.message,
+          instructions: 'Please refresh the page and try again.'
+        });
       }
     }
   };
@@ -94,18 +130,50 @@ export default function PassengerHome({ userName }) {
       return;
     }
     
-    console.log('Camera shutter clicked');
-    // Add photo capture logic here
-    alert('Photo captured! (Capture functionality to be implemented)');
+    // Capture photo from video stream
+    const canvas = document.createElement('canvas');
+    const video = videoRef.current;
+    
+    if (!video) return;
+    
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const context = canvas.getContext('2d');
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    // Convert to base64
+    const photoData = canvas.toDataURL('image/jpeg', 0.9);
+    
+    // Stop camera stream
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+    }
+    
+    console.log('Photo captured successfully!');
+    
+    // Navigate to report form with the photo
+    handleNavClick('compose', photoData);
   };
 
-  const handleNavClick = (nav) => {
+  const handleNavClick = (nav, photoData = null) => {
     console.log(`Navigating to: ${nav}`);
-    // Add navigation logic here
+    
+    if (nav === 'compose') {
+      // Navigate to report form (with or without photo)
+      if (onNavigateToReport) {
+        onNavigateToReport(photoData); // photoData will be null if no photo
+      }
+    } else if (nav === 'map') {
+      // Navigate to map view
+      if (onNavigateToMap) {
+        onNavigateToMap();
+      }
+    }
   };
 
   return (
-    <div className={`min-h-screen ${
+    <div className={`h-screen overflow-hidden ${
       isDark 
         ? 'bg-gradient-to-br from-blue-900 via-indigo-900 to-blue-900' 
         : 'bg-gradient-to-br from-blue-50 via-white to-indigo-50'
@@ -140,25 +208,53 @@ export default function PassengerHome({ userName }) {
         {!isCameraActive && (
           <button
             onClick={activateCamera}
+            disabled={!!cameraError}
             className={`absolute inset-0 ${
               isDark ? 'bg-gray-900/80' : 'bg-blue-100/60'
-            } cursor-pointer hover:bg-opacity-70 transition-all duration-300 flex flex-col items-center justify-center gap-6`}
+            } ${!cameraError ? 'cursor-pointer hover:bg-opacity-70' : 'cursor-default'} transition-all duration-300 flex flex-col items-center justify-center gap-6`}
           >
-            <Camera className={`w-16 h-16 ${
-              isDark ? 'text-blue-400' : 'text-blue-600'
-            }`} strokeWidth={1.5} />
-            <div className="text-center px-6">
-              <p className={`text-xl font-semibold mb-2 ${
-                isDark ? 'text-white' : 'text-gray-900'
-              }`}>
-                Tap to Open Camera
-              </p>
-              <p className={`text-sm ${
-                isDark ? 'text-blue-300' : 'text-blue-600'
-              }`}>
-                Start capturing safety and accessibility reports
-              </p>
-            </div>
+            {cameraError ? (
+              // Show error message
+              <div className="px-6 max-w-md">
+                <div className="bg-red-900/50 border-2 border-red-500 rounded-2xl p-6">
+                  <h3 className="text-xl font-bold text-red-300 mb-3">{cameraError.title}</h3>
+                  <p className="text-red-200 mb-4">{cameraError.message}</p>
+                  {cameraError.instructions && (
+                    <div className="bg-red-800/50 rounded-xl p-4">
+                      <p className="text-sm text-red-100">{cameraError.instructions}</p>
+                    </div>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCameraError(null);
+                    }}
+                    className="mt-4 w-full py-3 bg-red-600 hover:bg-red-700 rounded-xl text-white font-semibold"
+                  >
+                    Try Again
+                  </button>
+                </div>
+              </div>
+            ) : (
+              // Show camera activation prompt
+              <>
+                <Camera className={`w-16 h-16 ${
+                  isDark ? 'text-blue-400' : 'text-blue-600'
+                }`} strokeWidth={1.5} />
+                <div className="text-center px-6">
+                  <p className={`text-xl font-semibold mb-2 ${
+                    isDark ? 'text-white' : 'text-gray-900'
+                  }`}>
+                    Tap to Open Camera
+                  </p>
+                  <p className={`text-sm ${
+                    isDark ? 'text-blue-300' : 'text-blue-600'
+                  }`}>
+                    Start capturing safety and accessibility reports
+                  </p>
+                </div>
+              </>
+            )}
           </button>
         )}
 
